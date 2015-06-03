@@ -132,6 +132,9 @@ class BibtexParser
             return array_map(array('\AudioLabs\BibtexParser\BibtexParser', 'cleanup'), $value);
         }
 
+	$value=preg_replace("/(^\")/",'',$value);
+	$value=preg_replace("/(\",$)/",'',$value);
+	
         // replace a bunch of LaTeX stuff
 	$search  = array("\^e","\'E",'\v s',"\'o","\'\i","\`a","\c c", '\"\i', "\'e", '\"a', '\"A', '\"o', '\"O', '\"u', '\U"', '\ss', '\`e', '\´e', '\url{', '{', '}', '--',      '\"', "\'", '`', '\textbackslash');
         $replace = array('ê','É'  ,'š'   ,'ó'   ,'í'    ,'à'  ,'ç'   , 'ï'   , 'é'  , 'ä',  'Ä',   'ö',   'Ö',   'ü',   'Ü',   'ß',   'è',   'é',   '',      '',  '',  '&mdash;', ' ',  ' ',  ' ', '\\');
