@@ -98,6 +98,7 @@ class BibtexParser
 		}
 		elseif($handle == 'hal_id') {
 		  $items[$count]['entry'] = self::parse_type(self::cleanup($data));
+                  $value = $data;
 		}
 		elseif($handle == 'language') {
 		  $value = self::parse_language(self::cleanup($data));
@@ -132,9 +133,8 @@ class BibtexParser
             return array_map(array('\AudioLabs\BibtexParser\BibtexParser', 'cleanup'), $value);
         }
 
-	$value=preg_replace("/(^\")/",'',$value);
-	$value=preg_replace("/(\",$)/",'',$value);
-	
+	$value=preg_replace("/(^\")/","",$value);
+	$value=preg_replace("/(\",$)/","",$value);
         // replace a bunch of LaTeX stuff
 	$search  = array("\^e","\'E",'\v s',"\'o","\'\i","\`a","\c c", '\"\i', "\'e", '\"a', '\"A', '\"o', '\"O', '\"u', '\U"', '\ss', '\`e', '\´e', '\url{', '{', '}', '--',      '\"', "\'", '`', '\textbackslash');
         $replace = array('ê','É'  ,'š'   ,'ó'   ,'í'    ,'à'  ,'ç'   , 'ï'   , 'é'  , 'ä',  'Ä',   'ö',   'Ö',   'ü',   'Ü',   'ß',   'è',   'é',   '',      '',  '',  '&mdash;', ' ',  ' ',  ' ', '\\');
@@ -145,80 +145,48 @@ class BibtexParser
     }
 
   static function parse_type($hal_id){
-      $args = array('identifiant' => $hal_id, 'version' => 1);
-      $audience = '';
-
-      try {
-	$soapclient = new \SoapClient("http://hal.archives-ouvertes.fr/ws/search.php?wsdl", array('trace'=>1));
-	$return = $soapclient->getArticleMetadata($args);
-      } catch ( \Exception $e ) {
-	echo "Exception type: ".$hal_id." / ".$e->getMessage()."<br>";
-	return false;
-      }
+      $hal = file_get_contents("http://api.archives-ouvertes.fr/search/?wt=json&q=halId_s:".$hal_id."&q=version_i:1&fl=*");
+      $hal = json_decode($hal);
+      $hal = self::objectToArray($hal);
       
-      if ( is_soap_fault($return) ) {
-	echo "SOAP Fault : (faultcode: {$return->faultcode}, faultstring: {$return->faultstring})<br/>";
-      } else {
-	foreach($return->getArticleMetadataResult->metaSimple as $metadata){
-	  if( $metadata->metaName == 'audience' )
-	    $audience = $metadata->metaValue;
-	  if( $metadata->metaName == 'typePubli' )
-	    $type = $metadata->metaCode;
-	}
+      if (isset($hal['response']['docs'][0])) {
+          $publi = $hal['response']['docs'][0];
+          switch($publi['docType_s']){
+              case 'ART':
+                  if( $publi['audience_s'] == 2 ) 
+                      return 'ACLI';
+                  elseif( $publi['audience_s'] == 3 )
+                      return 'ACLN';
+                  else
+                      return 'ACLO';
+                  break;
+                  
+              case 'OUV':    return 'OSB';    break;
+              case 'COUV':   return 'OSC';    break;
+              case 'DOUV':   return 'CONFP';  break;
+              case 'HDR':    return 'THH';    break;
+              case 'THESE':  return 'THP';    break;
+              case 'PATENT': return 'BLL';    break;
+              case 'COMM':
+                  if( $publi['proceedings_s'] == 1 && $publi['audience_s'] == 2 ) 
+                      return 'CONFIA';
+                  elseif( $publi['proceedings_s'] == 1 && $publi['audience_s'] == 3 )
+                      return 'CONFNA';
+                  elseif( $publi['proceedings_s'] == 1 )
+                      return 'CONFNA';
+                  elseif( $publi['proceedings_s'] == 0 && $publi['audience_s'] == 2 ) 
+                      return 'CONFIS';
+                  elseif( $publi['proceedings_s'] == 0 && $publi['audience_s'] == 3 )
+                      return 'CONFN';
+                  else
+                      return 'CONFNA';
+                  break;
+          }
+          
+          return 'AP';
       }
-      switch($type){
-      case 'ART_ACL':
-	if( $audience == 'internationale' ) 
-	  return 'ACLI';
-	elseif( $audience == 'nationale' )
-	  return 'ACLN';
-	else
-	  return 'ACLO';
-	break;
-
-      case 'ART_SCL':   return 'ACLO';   break;
-      case 'OUVS':      return 'OSB';    break;
-      case 'COVS':      return 'OSC';    break;
-      case 'DOUV':      return 'CONFP';  break;
-      case 'HDR':       return 'THH';    break;
-      case 'REPORT':    return 'RPT';    break;
-      case 'THESE':     return 'THP';    break;
-      case 'CONF_INV':  return 'CONFI';  break;
-      case 'PATENT':    return 'BLL';    break;
-      case 'OTHER':     return 'AP';     break;
-
-      case 'COMM_ACT':
-	if( $audience == 'internationale' ) 
-	  return 'CONFIA';
-	elseif( $audience == 'nationale' )
-	  return 'CONFNA';
-	else
-	  return 'CONFNA';
-	break;
-	
-      case 'COMM_SACT':
-	if( $audience == 'internationale' ) 
-	  return 'CONFIS';
-	elseif( $audience == 'nationale' )
-	  return 'CONFN';
-	else
-	  return 'CONFN';
-	break;
-
-      case 'CONF_ACT':
-	if( $audience == 'internationale' ) 
-	  return 'CONFIA';
-	elseif( $audience == 'nationale' )
-	  return 'CONFNA';
-	break;
-	
-      case 'CONF_SCT':
-	if( $audience == 'internationale' ) 
-	  return 'CONFIS';
-	elseif( $audience == 'nationale' )
-	  return 'CONFN';
-	break;
-      }
+ 
+      return false;
     }
 
     static function parse_language($language){
@@ -226,5 +194,17 @@ class BibtexParser
 	return 'en';
       else
 	return 'fr';
-    }  
+    }
+
+    static function objectToArray( $object ) {
+	if( !is_object( $object ) && !is_array( $object ) ) {
+            return $object;
+	}
+	if( is_object( $object ) ) {
+            $object = get_object_vars( $object );
+	}
+	return array_map( 'self::objectToArray', $object );
+    }
+
+  
 }
