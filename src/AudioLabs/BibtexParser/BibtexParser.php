@@ -81,7 +81,7 @@ class BibtexParser
 		  $value = self::cleanup($data);
 		}
 		elseif($handle == 'month') {
-		  switch(self::cleanup($data)){
+		  switch(substr(self::cleanup($data),0,3)){
 		  case "Jan": $value = '1'; break;
 		  case "Feb": $value = '2'; break;
 		  case "Mar": $value = '3'; break;
@@ -94,6 +94,7 @@ class BibtexParser
 		  case "Oct": $value = '10'; break;
 		  case "Nov": $value = '11'; break;
 		  case "Dec": $value = '12'; break;
+		  default: $value = ''; break;
 		  }
 		}
 		elseif($handle == 'hal_id') {
