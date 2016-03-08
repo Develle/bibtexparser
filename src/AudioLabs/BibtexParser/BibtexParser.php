@@ -82,15 +82,15 @@ class BibtexParser
 		}
 		elseif($handle == 'month') {
 		  switch(substr(self::cleanup($data),0,3)){
-		  case "Jan": $value = '1'; break;
-		  case "Feb": $value = '2'; break;
-		  case "Mar": $value = '3'; break;
-		  case "Apr": $value = '4'; break;
-		  case "May": $value = '5'; break;
-		  case "Jun": $value = '6'; break;
-		  case "Jul": $value = '7'; break;
-		  case "Aug": $value = '8'; break;
-		  case "Sep": $value = '9'; break;
+		  case "Jan": $value = '01'; break;
+		  case "Feb": $value = '02'; break;
+		  case "Mar": $value = '03'; break;
+		  case "Apr": $value = '04'; break;
+		  case "May": $value = '05'; break;
+		  case "Jun": $value = '06'; break;
+		  case "Jul": $value = '07'; break;
+		  case "Aug": $value = '08'; break;
+		  case "Sep": $value = '09'; break;
 		  case "Oct": $value = '10'; break;
 		  case "Nov": $value = '11'; break;
 		  case "Dec": $value = '12'; break;
